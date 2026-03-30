@@ -59,9 +59,9 @@ INSERT INTO portfolio_projects (
 )
 VALUES
 (
-    'Photographer Portfolio',
-    'photographer-portfolio',
-    'Portfolio website for a freelance photographer.',
+    'Website Portfolio',
+    'website-portfolio',
+    'Portfolio website for a web designer and developer.',
     'https://example.com/project1.jpg',
     'https://example.com/project1',
     'https://github.com/anabelreyesweb-boop/project1',
@@ -71,9 +71,9 @@ VALUES
     TRUE
 ),
 (
-    'Local Business Landing Page',
-    'local-business-landing-page',
-    'Landing page for a local business.',
+    'Business Website Design',
+    'business-website-design',
+    'Website design project for a business client.',
     'https://example.com/project2.jpg',
     'https://example.com/project2',
     'https://github.com/anabelreyesweb-boop/project2',
@@ -83,9 +83,9 @@ VALUES
     TRUE
 ),
 (
-    'Online Store UI',
-    'online-store-ui',
-    'Frontend interface for an online store.',
+    'Custom Web Development',
+    'custom-web-development',
+    'Custom website development project focused on functionality and user experience.',
     'https://example.com/project3.jpg',
     'https://example.com/project3',
     'https://github.com/anabelreyesweb-boop/project3',

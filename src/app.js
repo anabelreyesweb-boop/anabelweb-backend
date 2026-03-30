@@ -43,6 +43,31 @@ app.get('/portfolio-projects', (req, res) => {
   });
 });
 
+app.get('/portfolio-projects/:slug', (req, res) => {
+  const { slug } = req.params;
+
+  db.query(
+    'SELECT * FROM portfolio_projects WHERE slug = ? LIMIT 1',
+    [slug],
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error fetching portfolio project',
+          error: err.message
+        });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({
+          message: 'Portfolio project not found'
+        });
+      }
+
+      res.json(results[0]);
+    }
+  );
+});
+
 app.get('/premium-content', (req, res) => {
   db.query(
     'SELECT * FROM premium_content WHERE published = 1 ORDER BY display_order ASC',
