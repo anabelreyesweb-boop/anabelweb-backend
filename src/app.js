@@ -5,6 +5,7 @@ require('dotenv').config();
 const db = require('./config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -237,6 +238,13 @@ app.post('/auth/login', (req, res) => {
       }
     }
   );
+});
+
+app.get('/profile', authMiddleware, (req, res) => {
+  res.json({
+    message: 'Protected profile data',
+    user: req.user
+  });
 });
 
 app.listen(PORT, () => {
