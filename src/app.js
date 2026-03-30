@@ -3,6 +3,8 @@ const cors = require('cors');
 require('dotenv').config();
 
 const db = require('./config/db');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -105,6 +107,134 @@ app.get('/premium-content/:slug', (req, res) => {
       }
 
       res.json(results[0]);
+    }
+  );
+});
+
+app.post('/auth/register', async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({
+      message: 'Name, email and password are required'
+    });
+  }
+
+  try {
+    db.query(
+      'SELECT id FROM users WHERE email = ? LIMIT 1',
+      [email],
+      async (checkErr, checkResults) => {
+        if (checkErr) {
+          return res.status(500).json({
+            message: 'Error checking existing user',
+            error: checkErr.message
+          });
+        }
+
+        if (checkResults.length > 0) {
+          return res.status(409).json({
+            message: 'Email already registered'
+          });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        db.query(
+          'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
+          [name, email, passwordHash, 'subscriber'],
+          (insertErr, insertResults) => {
+            if (insertErr) {
+              return res.status(500).json({
+                message: 'Error registering user',
+                error: insertErr.message
+              });
+            }
+
+            res.status(201).json({
+              message: 'User registered successfully',
+              user: {
+                id: insertResults.insertId,
+                name,
+                email,
+                role: 'subscriber'
+              }
+            });
+          }
+        );
+      }
+    );
+  } catch (error) {
+    res.status(500).json({
+      message: 'Unexpected server error',
+      error: error.message
+    });
+  }
+});
+
+app.post('/auth/login', (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      message: 'Email and password are required'
+    });
+  }
+
+  db.query(
+    'SELECT id, name, email, password_hash, role FROM users WHERE email = ? LIMIT 1',
+    [email],
+    async (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error logging in',
+          error: err.message
+        });
+      }
+
+      if (results.length === 0) {
+        return res.status(401).json({
+          message: 'Invalid email or password'
+        });
+      }
+
+      const user = results[0];
+
+      try {
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+
+        if (!isMatch) {
+          return res.status(401).json({
+            message: 'Invalid email or password'
+          });
+        }
+
+        const token = jwt.sign(
+          {
+            id: user.id,
+            email: user.email,
+            role: user.role
+          },
+          process.env.JWT_SECRET,
+          { expiresIn: '1h' }
+        );
+
+        res.json({
+          message: 'Login successful',
+          token,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        });
+      } catch (compareError) {
+        res.status(500).json({
+          message: 'Error verifying password',
+          error: compareError.message
+        });
+      }
     }
   );
 });
