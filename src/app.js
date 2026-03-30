@@ -247,6 +247,29 @@ app.get('/profile', authMiddleware, (req, res) => {
   });
 });
 
+app.get('/my-subscription', authMiddleware, (req, res) => {
+  db.query(
+    'SELECT * FROM subscriptions WHERE user_id = ? ORDER BY start_date DESC LIMIT 1',
+    [req.user.id],
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error fetching subscription',
+          error: err.message
+        });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({
+          message: 'Subscription not found'
+        });
+      }
+
+      res.json(results[0]);
+    }
+  );
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
