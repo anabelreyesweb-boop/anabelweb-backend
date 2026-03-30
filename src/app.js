@@ -84,6 +84,31 @@ app.get('/premium-content', (req, res) => {
   );
 });
 
+app.get('/premium-content/:slug', (req, res) => {
+  const { slug } = req.params;
+
+  db.query(
+    'SELECT * FROM premium_content WHERE slug = ? AND published = 1 LIMIT 1',
+    [slug],
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error fetching premium content',
+          error: err.message
+        });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({
+          message: 'Premium content not found'
+        });
+      }
+
+      res.json(results[0]);
+    }
+  );
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
