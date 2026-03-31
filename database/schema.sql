@@ -53,18 +53,3 @@ CREATE TABLE premium_content (
     published BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE TABLE portfolio_projects (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(200) NOT NULL,
-    slug VARCHAR(220) NOT NULL UNIQUE,
-    description TEXT,
-    image_url TEXT,
-    project_url TEXT,
-    repository_url TEXT,
-    technologies TEXT,
-    featured BOOLEAN DEFAULT FALSE,
-    project_date DATE,
-    published BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);

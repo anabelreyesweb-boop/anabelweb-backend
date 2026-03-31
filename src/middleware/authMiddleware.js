@@ -30,4 +30,40 @@ function authMiddleware(req, res, next) {
   }
 }
 
-module.exports = authMiddleware;
+module.exports = {
+  authMiddleware,
+  requireActiveSubscription
+};
+
+function requireActiveSubscription(req, res, next) {
+  const userId = req.user.id;
+
+  const query = `
+    SELECT * FROM subscriptions
+    WHERE user_id = ?
+      AND status = 'active'
+      AND end_date >= CURDATE()
+    ORDER BY end_date DESC
+    LIMIT 1
+  `;
+
+  const db = require('../config/db');
+
+  db.query(query, [userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        message: 'Error checking subscription',
+        error: err.message
+      });
+    }
+
+    if (results.length === 0) {
+      return res.status(403).json({
+        message: 'Active subscription required'
+      });
+    }
+
+    req.subscription = results[0];
+    next();
+  });
+}

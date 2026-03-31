@@ -5,8 +5,7 @@ require('dotenv').config();
 const db = require('./config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const authMiddleware = require('./middleware/authMiddleware');
-
+const { authMiddleware, requireActiveSubscription } = require('./middleware/authMiddleware');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -33,45 +32,7 @@ app.get('/db-test', (req, res) => {
   });
 });
 
-app.get('/portfolio-projects', (req, res) => {
-  db.query('SELECT * FROM portfolio_projects', (err, results) => {
-    if (err) {
-      return res.status(500).json({
-        message: 'Error fetching portfolio projects',
-        error: err.message
-      });
-    }
-
-    res.json(results);
-  });
-});
-
-app.get('/portfolio-projects/:slug', (req, res) => {
-  const { slug } = req.params;
-
-  db.query(
-    'SELECT * FROM portfolio_projects WHERE slug = ? LIMIT 1',
-    [slug],
-    (err, results) => {
-      if (err) {
-        return res.status(500).json({
-          message: 'Error fetching portfolio project',
-          error: err.message
-        });
-      }
-
-      if (results.length === 0) {
-        return res.status(404).json({
-          message: 'Portfolio project not found'
-        });
-      }
-
-      res.json(results[0]);
-    }
-  );
-});
-
-app.get('/premium-content', (req, res) => {
+app.get('/premium-content', authMiddleware, requireActiveSubscription, (req, res) => {
   db.query(
     'SELECT * FROM premium_content WHERE published = 1 ORDER BY display_order ASC',
     (err, results) => {
@@ -87,7 +48,7 @@ app.get('/premium-content', (req, res) => {
   );
 });
 
-app.get('/premium-content/:slug', (req, res) => {
+app.get('/premium-content/:slug', authMiddleware, requireActiveSubscription, (req, res) => {
   const { slug } = req.params;
 
   db.query(
