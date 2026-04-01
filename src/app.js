@@ -5,7 +5,12 @@ require('dotenv').config();
 const db = require('./config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { authMiddleware, requireActiveSubscription } = require('./middleware/authMiddleware');
+const {
+  authMiddleware,
+  requireActiveSubscription,
+  requireAdmin
+} = require('./middleware/authMiddleware');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -69,6 +74,163 @@ app.get('/premium-content/:slug', authMiddleware, requireActiveSubscription, (re
       }
 
       res.json(results[0]);
+    }
+  );
+});
+
+app.post('/premium-content', authMiddleware, requireAdmin, (req, res) => {
+  const {
+    title,
+    slug,
+    description,
+    support_text,
+    video_url,
+    cover_image,
+    topic,
+    display_order,
+    published
+  } = req.body;
+
+  if (!title || !slug || !video_url) {
+    return res.status(400).json({
+      message: 'Title, slug and video_url are required'
+    });
+  }
+
+  db.query(
+    `
+    INSERT INTO premium_content (
+      title,
+      slug,
+      description,
+      support_text,
+      video_url,
+      cover_image,
+      topic,
+      display_order,
+      published
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      title,
+      slug,
+      description || null,
+      support_text || null,
+      video_url,
+      cover_image || null,
+      topic || null,
+      display_order || 0,
+      published ? 1 : 0
+    ],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error creating premium content',
+          error: err.message
+        });
+      }
+
+      res.status(201).json({
+        message: 'Premium content created successfully',
+        id: result.insertId
+      });
+    }
+  );
+});
+
+app.put('/premium-content/:id', authMiddleware, requireAdmin, (req, res) => {
+  const { id } = req.params;
+
+  const {
+    title,
+    slug,
+    description,
+    support_text,
+    video_url,
+    cover_image,
+    topic,
+    display_order,
+    published
+  } = req.body;
+
+  if (!title || !slug || !video_url) {
+    return res.status(400).json({
+      message: 'Title, slug and video_url are required'
+    });
+  }
+
+  db.query(
+    `
+    UPDATE premium_content
+    SET
+      title = ?,
+      slug = ?,
+      description = ?,
+      support_text = ?,
+      video_url = ?,
+      cover_image = ?,
+      topic = ?,
+      display_order = ?,
+      published = ?
+    WHERE id = ?
+    `,
+    [
+      title,
+      slug,
+      description || null,
+      support_text || null,
+      video_url,
+      cover_image || null,
+      topic || null,
+      display_order || 0,
+      published ? 1 : 0,
+      id
+    ],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error updating premium content',
+          error: err.message
+        });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          message: 'Premium content not found'
+        });
+      }
+
+      res.json({
+        message: 'Premium content updated successfully'
+      });
+    }
+  );
+});
+
+app.delete('/premium-content/:id', authMiddleware, requireAdmin, (req, res) => {
+  const { id } = req.params;
+
+  db.query(
+    'DELETE FROM premium_content WHERE id = ?',
+    [id],
+    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error deleting premium content',
+          error: err.message
+        });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          message: 'Premium content not found'
+        });
+      }
+
+      res.json({
+        message: 'Premium content deleted successfully'
+      });
     }
   );
 });

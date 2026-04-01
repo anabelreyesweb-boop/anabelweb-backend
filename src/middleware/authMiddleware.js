@@ -1,23 +1,16 @@
 const jwt = require('jsonwebtoken');
+const db = require('../config/db');
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({
-      message: 'Access denied. No token provided'
+      message: 'Access denied. No token provided.'
     });
   }
 
-  const parts = authHeader.split(' ');
-
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    return res.status(401).json({
-      message: 'Invalid token format'
-    });
-  }
-
-  const token = parts[1];
+  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -30,40 +23,56 @@ function authMiddleware(req, res, next) {
   }
 }
 
-module.exports = {
-  authMiddleware,
-  requireActiveSubscription
-};
-
 function requireActiveSubscription(req, res, next) {
-  const userId = req.user.id;
-
-  const query = `
-    SELECT * FROM subscriptions
+  db.query(
+    `
+    SELECT *
+    FROM subscriptions
     WHERE user_id = ?
       AND status = 'active'
-      AND end_date >= CURDATE()
-    ORDER BY end_date DESC
+      AND (end_date IS NULL OR end_date >= CURDATE())
+    ORDER BY id DESC
     LIMIT 1
-  `;
+    `,
+    [req.user.id],
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error checking subscription',
+          error: err.message
+        });
+      }
 
-  const db = require('../config/db');
+      if (results.length === 0) {
+        return res.status(403).json({
+          message: 'Active subscription required'
+        });
+      }
 
-  db.query(query, [userId], (err, results) => {
-    if (err) {
-      return res.status(500).json({
-        message: 'Error checking subscription',
-        error: err.message
-      });
+      req.subscription = results[0];
+      next();
     }
-
-    if (results.length === 0) {
-      return res.status(403).json({
-        message: 'Active subscription required'
-      });
-    }
-
-    req.subscription = results[0];
-    next();
-  });
+  );
 }
+
+function requireAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      message: 'Unauthorized'
+    });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      message: 'Admin access required'
+    });
+  }
+
+  next();
+}
+
+module.exports = {
+  authMiddleware,
+  requireActiveSubscription,
+  requireAdmin
+};
