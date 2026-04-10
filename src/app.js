@@ -53,6 +53,47 @@ app.get('/premium-content', authMiddleware, requireActiveSubscription, (req, res
   );
 });
 
+app.get('/admin/premium-content', authMiddleware, requireAdmin, (req, res) => {
+  db.query(
+    'SELECT * FROM premium_content ORDER BY display_order ASC, id DESC',
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error fetching admin premium content',
+          error: err.message
+        });
+      }
+
+      res.json(results);
+    }
+  );
+});
+
+app.get('/admin/premium-content/:id', authMiddleware, requireAdmin, (req, res) => {
+  const { id } = req.params;
+
+  db.query(
+    'SELECT * FROM premium_content WHERE id = ? LIMIT 1',
+    [id],
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error fetching premium content',
+          error: err.message
+        });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({
+          message: 'Premium content not found'
+        });
+      }
+
+      res.json(results[0]);
+    }
+  );
+});
+
 app.get('/premium-content/:slug', authMiddleware, requireActiveSubscription, (req, res) => {
   const { slug } = req.params;
 
@@ -296,6 +337,160 @@ app.post('/auth/register', async (req, res) => {
   }
 });
 
+app.post('/subscribe', async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({
+      message: 'Name, email and password are required'
+    });
+  }
+
+  try {
+    db.query(
+      'SELECT id FROM users WHERE email = ? LIMIT 1',
+      [email],
+      async (checkErr, checkResults) => {
+        if (checkErr) {
+          return res.status(500).json({
+            message: 'Error checking existing user',
+            error: checkErr.message
+          });
+        }
+
+        if (checkResults.length > 0) {
+          return res.status(409).json({
+            message: 'Email already registered'
+          });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        db.query(
+          'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
+          [name, email, passwordHash, 'subscriber'],
+          (userErr, userResult) => {
+            if (userErr) {
+              return res.status(500).json({
+                message: 'Error creating user',
+                error: userErr.message
+              });
+            }
+
+            const userId = userResult.insertId;
+
+            const startDate = new Date();
+            const endDate = new Date();
+            endDate.setMonth(endDate.getMonth() + 1);
+
+            const formattedStartDate = startDate.toISOString().split('T')[0];
+            const formattedEndDate = endDate.toISOString().split('T')[0];
+
+            const simulatedProviderSubscriptionId = `sub_sim_${userId}_${Date.now()}`;
+            const simulatedProviderPaymentId = `pay_sim_${userId}_${Date.now()}`;
+
+            db.query(
+              `
+              INSERT INTO subscriptions (
+                user_id,
+                status,
+                start_date,
+                end_date,
+                auto_renewal,
+                monthly_price,
+                currency,
+                provider_subscription_id
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              `,
+              [
+                userId,
+                'active',
+                formattedStartDate,
+                formattedEndDate,
+                true,
+                10.00,
+                'EUR',
+                simulatedProviderSubscriptionId
+              ],
+              (subscriptionErr, subscriptionResult) => {
+                if (subscriptionErr) {
+                  return res.status(500).json({
+                    message: 'Error creating subscription',
+                    error: subscriptionErr.message
+                  });
+                }
+
+                const subscriptionId = subscriptionResult.insertId;
+
+                db.query(
+                  `
+                  INSERT INTO payments (
+                    user_id,
+                    subscription_id,
+                    amount,
+                    currency,
+                    status,
+                    provider_payment_id
+                  )
+                  VALUES (?, ?, ?, ?, ?, ?)
+                  `,
+                  [
+                    userId,
+                    subscriptionId,
+                    10.00,
+                    'EUR',
+                    'completed',
+                    simulatedProviderPaymentId
+                  ],
+                  (paymentErr, paymentResult) => {
+                    if (paymentErr) {
+                      return res.status(500).json({
+                        message: 'Error creating payment',
+                        error: paymentErr.message
+                      });
+                    }
+
+                    return res.status(201).json({
+                      message: 'Account created and subscription activated successfully',
+                      email_sent: true,
+                      user: {
+                        id: userId,
+                        name,
+                        email,
+                        role: 'subscriber'
+                      },
+                      subscription: {
+                        id: subscriptionId,
+                        status: 'active',
+                        start_date: formattedStartDate,
+                        end_date: formattedEndDate,
+                        monthly_price: 10.00,
+                        currency: 'EUR'
+                      },
+                      payment: {
+                        id: paymentResult.insertId,
+                        amount: 10.00,
+                        currency: 'EUR',
+                        status: 'completed'
+                      }
+                    });
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Unexpected server error',
+      error: error.message
+    });
+  }
+});
+
 app.post('/auth/login', (req, res) => {
   const { email, password } = req.body;
 
@@ -389,6 +584,191 @@ app.get('/my-subscription', authMiddleware, (req, res) => {
       }
 
       res.json(results[0]);
+    }
+  );
+});
+
+app.post('/subscriptions/checkout', authMiddleware, (req, res) => {
+  const userId = req.user.id;
+
+  db.query(
+    `
+    SELECT * FROM subscriptions
+    WHERE user_id = ? AND status = 'active' AND (end_date IS NULL OR end_date >= CURDATE())
+    ORDER BY id DESC
+    LIMIT 1
+    `,
+    [userId],
+    (activeErr, activeResults) => {
+      if (activeErr) {
+        return res.status(500).json({
+          message: 'Error checking active subscription',
+          error: activeErr.message
+        });
+      }
+
+      if (activeResults.length > 0) {
+        return res.status(400).json({
+          message: 'You already have an active subscription'
+        });
+      }
+
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      const formattedStartDate = startDate.toISOString().split('T')[0];
+      const formattedEndDate = endDate.toISOString().split('T')[0];
+
+      const simulatedProviderSubscriptionId = `sub_sim_${userId}_${Date.now()}`;
+      const simulatedProviderPaymentId = `pay_sim_${userId}_${Date.now()}`;
+
+      db.query(
+        `
+        SELECT * FROM subscriptions
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+        `,
+        [userId],
+        (lastSubErr, lastSubResults) => {
+          if (lastSubErr) {
+            return res.status(500).json({
+              message: 'Error checking previous subscription',
+              error: lastSubErr.message
+            });
+          }
+
+          const createPaymentForSubscription = (subscriptionId) => {
+            db.query(
+              `
+              INSERT INTO payments (
+                user_id,
+                subscription_id,
+                amount,
+                currency,
+                status,
+                provider_payment_id
+              )
+              VALUES (?, ?, ?, ?, ?, ?)
+              `,
+              [
+                userId,
+                subscriptionId,
+                10.00,
+                'EUR',
+                'completed',
+                simulatedProviderPaymentId
+              ],
+              (paymentErr, paymentResult) => {
+                if (paymentErr) {
+                  return res.status(500).json({
+                    message: 'Error creating payment',
+                    error: paymentErr.message
+                  });
+                }
+
+                return res.status(201).json({
+                  message: 'Subscription activated successfully',
+                  subscription: {
+                    id: subscriptionId,
+                    user_id: userId,
+                    status: 'active',
+                    start_date: formattedStartDate,
+                    end_date: formattedEndDate,
+                    auto_renewal: true,
+                    monthly_price: 10.00,
+                    currency: 'EUR',
+                    provider_subscription_id: simulatedProviderSubscriptionId
+                  },
+                  payment: {
+                    id: paymentResult.insertId,
+                    amount: 10.00,
+                    currency: 'EUR',
+                    status: 'completed',
+                    provider_payment_id: simulatedProviderPaymentId
+                  }
+                });
+              }
+            );
+          };
+
+          if (lastSubResults.length > 0) {
+            const lastSubscription = lastSubResults[0];
+
+            db.query(
+              `
+              UPDATE subscriptions
+              SET
+                status = ?,
+                start_date = ?,
+                end_date = ?,
+                auto_renewal = ?,
+                monthly_price = ?,
+                currency = ?,
+                provider_subscription_id = ?
+              WHERE id = ?
+              `,
+              [
+                'active',
+                formattedStartDate,
+                formattedEndDate,
+                true,
+                10.00,
+                'EUR',
+                simulatedProviderSubscriptionId,
+                lastSubscription.id
+              ],
+              (updateErr) => {
+                if (updateErr) {
+                  return res.status(500).json({
+                    message: 'Error updating subscription',
+                    error: updateErr.message
+                  });
+                }
+
+                createPaymentForSubscription(lastSubscription.id);
+              }
+            );
+          } else {
+            db.query(
+              `
+              INSERT INTO subscriptions (
+                user_id,
+                status,
+                start_date,
+                end_date,
+                auto_renewal,
+                monthly_price,
+                currency,
+                provider_subscription_id
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              `,
+              [
+                userId,
+                'active',
+                formattedStartDate,
+                formattedEndDate,
+                true,
+                10.00,
+                'EUR',
+                simulatedProviderSubscriptionId
+              ],
+              (insertErr, insertResult) => {
+                if (insertErr) {
+                  return res.status(500).json({
+                    message: 'Error creating subscription',
+                    error: insertErr.message
+                  });
+                }
+
+                createPaymentForSubscription(insertResult.insertId);
+              }
+            );
+          }
+        }
+      );
     }
   );
 });
