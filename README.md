@@ -1,8 +1,8 @@
 # Anabel Web Backend
 
-This is the backend of the Anabel Web project, built with Node.js, Express, and MySQL.
+This is the backend of the **Anabel Web** project, built with **Node.js**, **Express**, and **MySQL**.
 
-It provides authentication, protected routes, subscription checks, simulated payment processing, and admin CRUD operations for premium content.
+It provides authentication, protected routes, subscription checks, simulated payment processing, simulated password recovery, and admin CRUD operations for premium content.
 
 # Project Overview
 
@@ -10,17 +10,17 @@ The backend is connected to a MySQL database and supports the frontend applicati
 
 # Authentication
 
-* User registration
 * User login
 * JWT-based authentication
 * Protected profile route
+* Simulated forgot password flow
 
 # Subscription Logic
 
 * Subscription status lookup
 * Access control for premium content
 * Active subscription validation
-* Subscription activation through a simulated checkout flow
+* Unified account creation + subscription activation flow
 
 # Premium Content
 
@@ -38,11 +38,17 @@ The backend is connected to a MySQL database and supports the frontend applicati
 
 # Payment Simulation
 
-This project uses a simulated payment flow for educational purposes.
+This project uses a **simulated payment flow** for educational purposes.
 
-The backend does not connect to a real bank, card processor, or payment gateway.
+The backend does **not** connect to a real bank, card processor, or payment gateway.
 
-When a user completes the checkout flow, the application will create payment and subscription records in the database to simulate a successful premium subscription purchase.
+When a user completes the checkout flow, the application creates user, subscription, and payment records in the database to simulate a successful premium subscription purchase.
+
+# Email Simulation
+
+The confirmation email is also simulated for educational purposes.
+
+After a successful subscription, the backend returns a response indicating that a confirmation email has been sent, without connecting to a real email provider.
 
 # Tech Stack
 
@@ -137,13 +143,17 @@ The portfolio section was removed from the project and is no longer part of the 
 
 # Authentication
 
-* POST `/auth/register`
 * POST `/auth/login`
+* POST `/auth/forgot-password`
+
+# Subscription
+
+* POST `/subscribe`
+* GET `/my-subscription`
 
 # User
 
 * GET `/profile`
-* GET `/my-subscription`
 
 # Premium Content
 
@@ -175,6 +185,29 @@ The backend uses JWT for protected routes.
 * Only users with an active subscription can access premium content
 * Only admin users can manage premium content
 
+# Subscription Flow
+
+The application uses one premium subscription plan:
+
+* **€10/month**
+* Full access to all premium content while active
+
+The subscription flow works as follows:
+
+1. The user submits their personal details
+2. The user completes a simulated checkout
+3. The backend creates the user account
+4. The backend creates the subscription record
+5. The backend creates the payment record
+6. The backend returns a simulated confirmation email response
+7. The frontend logs the user in automatically
+
+# Forgot Password Flow
+
+The forgot password process is simulated for educational purposes.
+
+When a user submits an email address, the backend always returns a generic success message without revealing whether the email exists in the system.
+
 # Test Users
 
 # Subscriber user
@@ -197,14 +230,18 @@ The backend uses JWT for protected routes.
 * Environment variables are managed with dotenv
 * CORS is enabled for frontend-backend communication
 * Payment processing is simulated as part of the academic scope of the project
+* Email confirmation is simulated as part of the academic scope of the project
+* The old standalone registration flow was removed from the main user journey
 
 # Current Status
 
 The backend currently supports:
 
 * working database connection test
-* user registration
 * user login
+* simulated forgot password flow
+* unified subscribe flow
+* simulated checkout persistence
 * JWT protection
 * subscription validation
 * premium content access restriction
