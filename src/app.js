@@ -348,7 +348,7 @@ app.post('/subscribe', async (req, res) => {
                 formattedStartDate,
                 formattedEndDate,
                 true,
-                10.00,
+                10.0,
                 'EUR',
                 simulatedProviderSubscriptionId
               ],
@@ -377,7 +377,7 @@ app.post('/subscribe', async (req, res) => {
                   [
                     userId,
                     subscriptionId,
-                    10.00,
+                    10.0,
                     'EUR',
                     'completed',
                     simulatedProviderPaymentId
@@ -404,12 +404,12 @@ app.post('/subscribe', async (req, res) => {
                         status: 'active',
                         start_date: formattedStartDate,
                         end_date: formattedEndDate,
-                        monthly_price: 10.00,
+                        monthly_price: 10.0,
                         currency: 'EUR'
                       },
                       payment: {
                         id: paymentResult.insertId,
-                        amount: 10.00,
+                        amount: 10.0,
                         currency: 'EUR',
                         status: 'completed'
                       }
@@ -511,6 +511,82 @@ app.post('/auth/login', (req, res) => {
   );
 });
 
+app.post('/auth/change-password', authMiddleware, (req, res) => {
+  const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+  if (!currentPassword || !newPassword || !confirmNewPassword) {
+    return res.status(400).json({
+      message: 'Current password, new password and confirmation are required'
+    });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      message: 'New password must be at least 6 characters'
+    });
+  }
+
+  if (newPassword !== confirmNewPassword) {
+    return res.status(400).json({
+      message: 'New passwords do not match'
+    });
+  }
+
+  db.query(
+    'SELECT id, password_hash FROM users WHERE id = ? LIMIT 1',
+    [req.user.id],
+    async (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error checking current password',
+          error: err.message
+        });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({
+          message: 'User not found'
+        });
+      }
+
+      try {
+        const user = results[0];
+        const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+
+        if (!isMatch) {
+          return res.status(401).json({
+            message: 'Current password is incorrect'
+          });
+        }
+
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+        db.query(
+          'UPDATE users SET password_hash = ? WHERE id = ?',
+          [newPasswordHash, req.user.id],
+          (updateErr) => {
+            if (updateErr) {
+              return res.status(500).json({
+                message: 'Error updating password',
+                error: updateErr.message
+              });
+            }
+
+            return res.json({
+              message: 'Password updated successfully'
+            });
+          }
+        );
+      } catch (hashError) {
+        return res.status(500).json({
+          message: 'Error processing password update',
+          error: hashError.message
+        });
+      }
+    }
+  );
+});
+
 app.get('/profile', authMiddleware, (req, res) => {
   res.json({
     message: 'Protected profile data',
@@ -520,7 +596,13 @@ app.get('/profile', authMiddleware, (req, res) => {
 
 app.get('/my-subscription', authMiddleware, (req, res) => {
   db.query(
-    'SELECT * FROM subscriptions WHERE user_id = ? ORDER BY start_date DESC LIMIT 1',
+    `
+    SELECT *
+    FROM subscriptions
+    WHERE user_id = ?
+    ORDER BY id DESC
+    LIMIT 1
+    `,
     [req.user.id],
     (err, results) => {
       if (err) {
@@ -532,7 +614,7 @@ app.get('/my-subscription', authMiddleware, (req, res) => {
 
       if (results.length === 0) {
         return res.status(404).json({
-          message: 'Subscription not found'
+          message: 'No subscription found'
         });
       }
 
@@ -542,5 +624,5 @@ app.get('/my-subscription', authMiddleware, (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
