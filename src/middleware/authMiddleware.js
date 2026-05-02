@@ -24,6 +24,16 @@ function authMiddleware(req, res, next) {
 }
 
 function requireActiveSubscription(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      message: 'Unauthorized'
+    });
+  }
+
+  if (req.user.role === 'admin') {
+    return next();
+  }
+
   db.query(
     `
     SELECT *
