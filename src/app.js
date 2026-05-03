@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Backend is running' });
@@ -587,11 +587,58 @@ app.post('/auth/change-password', authMiddleware, (req, res) => {
   );
 });
 
+app.put('/profile/photo', authMiddleware, (req, res) => {
+  const { profilePhoto } = req.body;
+
+  if (!profilePhoto) {
+    return res.status(400).json({
+      message: 'Profile photo is required'
+    });
+  }
+
+  db.query(
+    'UPDATE users SET profile_photo = ? WHERE id = ?',
+    [profilePhoto, req.user.id],
+    (err) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error updating profile photo',
+          error: err.message
+        });
+      }
+
+      return res.json({
+        message: 'Profile photo updated successfully',
+        profile_photo: profilePhoto
+      });
+    }
+  );
+});
+
 app.get('/profile', authMiddleware, (req, res) => {
-  res.json({
-    message: 'Protected profile data',
-    user: req.user
-  });
+  db.query(
+    'SELECT id, name, email, role, profile_photo FROM users WHERE id = ? LIMIT 1',
+    [req.user.id],
+    (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error fetching profile',
+          error: err.message
+        });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({
+          message: 'User not found'
+        });
+      }
+
+      res.json({
+        message: 'Protected profile data',
+        user: results[0]
+      });
+    }
+  );
 });
 
 app.get('/my-subscription', authMiddleware, (req, res) => {
