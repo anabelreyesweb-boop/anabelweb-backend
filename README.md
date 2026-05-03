@@ -1,262 +1,210 @@
-# Anabel Web Backend
+# AURUMPILL Backend
 
-This is the backend of the **Anabel Web** project, built with **Node.js**, **Express**, and **MySQL**.
+This is the backend of **AURUMPILL**, a full-stack web application built with **Node.js**, **Express**, **MySQL**, and **JWT authentication**.
 
-It provides authentication, protected routes, subscription checks, simulated payment processing, simulated password recovery, and admin CRUD operations for premium content.
+The backend provides the REST API used by the frontend to manage authentication, subscriptions, profile data, premium content, and admin features.
 
-# Project Overview
+## Version
 
-The backend is connected to a MySQL database and supports the frontend application with:
+1.0.0
 
-# Authentication
+## Project Overview
 
-* User login
-* JWT-based authentication
-* Protected profile route
-* Simulated forgot password flow
+The backend is responsible for:
 
-# Subscription Logic
+* User authentication
+* Profile management
+* Password change
+* Profile photo storage
+* Subscription management
+* Payment simulation
+* Premium content access
+* Admin CRUD for premium content
+* Route protection with JWT
+* Role-based access control for admin users
 
-* Subscription status lookup
-* Access control for premium content
-* Active subscription validation
-* Unified account creation + subscription activation flow
+The backend is connected to a **MySQL** database and communicates with the frontend through HTTP requests.
 
-# Premium Content
-
-* Public logic restricted to subscribed users
-* Premium content list
-* Premium content detail by slug
-
-# Admin Features
-
-* Admin-only premium content list
-* Create premium content
-* Edit premium content
-* Delete premium content
-* Get premium content by ID for editing
-
-# Payment Simulation
-
-This project uses a **simulated payment flow** for educational purposes.
-
-The backend does **not** connect to a real bank, card processor, or payment gateway.
-
-When a user completes the checkout flow, the application creates user, subscription, and payment records in the database to simulate a successful premium subscription purchase.
-
-# Email Simulation
-
-The confirmation email is also simulated for educational purposes.
-
-After a successful subscription, the backend returns a response indicating that a confirmation email has been sent, without connecting to a real email provider.
-
-# Tech Stack
+## Tech Stack
 
 * Node.js
 * Express
 * MySQL
-* mysql2
+* JWT
+* bcrypt
 * dotenv
 * cors
-* bcrypt
-* jsonwebtoken
 
-# Port
+## Backend Port
 
 The backend runs on:
 
 PORT=3000
 
-# Project Structure
+## Environment Variables
 
-database/
-schema.sql
-seed.sql
-
-src/
-app.js
-config/
-db.js
-middleware/
-authMiddleware.js
-
-.env
-.gitignore
-package.json
-
-# Installation
-
-# 1. Clone the repository
-
-git clone https://github.com/anabelreyesweb-boop/anabelweb-backend
-cd anabelweb-backend
-
-# 2. Install dependencies
-
-npm install
-
-# 3. Create the environment file
-
-Create a `.env` file in the root of the backend project and add:
+Create a `.env` file in the root of the backend project and configure:
 
 PORT=3000
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_USER=anabel
-DB_PASSWORD=Anabel123*
-DB_NAME=anabelweb_db
-JWT_SECRET=my_super_secret_key
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+DB_NAME=your_database_name
+JWT_SECRET=your_jwt_secret
 
-# 4. Start the server
+## Getting Started
 
-node src/app.js
+### 1. Clone the repository
 
-The backend will run at:
+git clone https://github.com/anabelreyesweb-boop/anabelweb-backend.git
+cd anabelweb-backend
+
+### 2. Install dependencies
+
+npm install
+
+### 3. Configure the environment file
+
+Create a `.env` file and add your database and JWT configuration.
+
+### 4. Start the development server
+
+npm start
+
+The API will run at:
 
 http://localhost:3000
 
-# Database
+## Database
 
-This project uses MySQL with the following database name:
+The backend uses a **MySQL** database.
 
-anabelweb_db
-
-# Main tables
+Main tables used in the project:
 
 * users
 * subscriptions
 * payments
 * premium_content
 
-# Removed table
+The `users` table also stores:
 
-* portfolio_projects
+* password hash
+* profile photo
+* role
 
-The portfolio section was removed from the project and is no longer part of the backend or database model.
+## Authentication and Security
 
-# Main Endpoints
+The backend uses **JWT** tokens for protected routes.
 
-# General
+Main security features:
 
-* GET `/`
-* GET `/db-test`
+* Login with email and password
+* Password hashing with bcrypt
+* Token verification through middleware
+* Role-based admin access
+* Protected subscription routes
+* Admin access to subscriber-only content
 
-# Authentication
+## Main API Endpoints
 
-* POST `/auth/login`
-* POST `/auth/forgot-password`
+### Public Endpoints
 
-# Subscription
+* `GET /`
+* `GET /db-test`
+* `POST /subscribe`
+* `POST /auth/login`
+* `POST /auth/forgot-password`
 
-* POST `/subscribe`
-* GET `/my-subscription`
+### Authenticated User Endpoints
 
-# User
+* `GET /profile`
+* `PUT /profile/photo`
+* `POST /auth/change-password`
+* `GET /my-subscription`
 
-* GET `/profile`
+### Premium Content Endpoints
 
-# Premium Content
+* `GET /premium-content`
+* `GET /premium-content/:slug`
 
-* GET `/premium-content`
-* GET `/premium-content/:slug`
+### Admin Endpoints
 
-# Admin Premium Content
+* `GET /admin/premium-content`
+* `GET /admin/premium-content/:id`
+* `POST /premium-content`
+* `PUT /premium-content/:id`
+* `DELETE /premium-content/:id`
 
-* GET `/admin/premium-content`
-* GET `/admin/premium-content/:id`
-* POST `/premium-content`
-* PUT `/premium-content/:id`
-* DELETE `/premium-content/:id`
+## Main Features
 
-# Authentication and Authorization
+### Authentication
 
-The backend uses JWT for protected routes.
+* User login
+* JWT generation
+* Protected routes
+* Admin role verification
+* Forgot password flow
 
-# Middleware
+### Subscription Flow
 
-* `authMiddleware`
-* `requireActiveSubscription`
-* `requireAdmin`
+The backend handles a subscription system with one premium plan:
 
-# Access rules
+* €10 per month
+* Active subscription required for premium access
+* Admin can also access protected premium routes
 
-* Authenticated users can access `/profile`
-* Authenticated users can access `/my-subscription`
-* Only users with an active subscription can access premium content
-* Only admin users can manage premium content
+When a user subscribes:
 
-# Subscription Flow
+1. The user account is created
+2. The password is hashed
+3. A subscription is created
+4. A payment record is created
+5. The frontend receives the data required to continue the flow
 
-The application uses one premium subscription plan:
+### Profile Features
 
-* **€10/month**
-* Full access to all premium content while active
+* Profile data retrieval
+* Real password change
+* Real profile photo storage in database
 
-The subscription flow works as follows:
+### Premium Content
 
-1. The user submits their personal details
-2. The user completes a simulated checkout
-3. The backend creates the user account
-4. The backend creates the subscription record
-5. The backend creates the payment record
-6. The backend returns a simulated confirmation email response
-7. The frontend logs the user in automatically
+* Premium content list for subscribed users
+* Premium detail by slug
+* Admin CRUD for premium content
 
-# Forgot Password Flow
+## Project Structure
 
-The forgot password process is simulated for educational purposes.
+src/
+config/
+db.js
+middleware/
+authMiddleware.js
+app.js
+database/
+schema.sql
+seed.sql
 
-When a user submits an email address, the backend always returns a generic success message without revealing whether the email exists in the system.
+## Available Scripts
 
-# Test Users
+### npm start
 
-# Subscriber user
+Runs the backend server in development mode.
 
-* Name: Ana
-* Email: [ana@example.com](mailto:ana@example.com)
-* Password: 123456
+## Notes
 
-# Admin user
+* Payment processing is simulated for academic purposes
+* Confirmation flows are simulated
+* Profile photo is stored in the database
+* Passwords are stored as hashes
+* Admin users have access to premium content and admin endpoints
 
-* Name: Anabel
-* Email: [anabel@example.com](mailto:anabel@example.com)
-* Password: 123456
-* Role: admin
+## License
 
-# Notes
+This project is licensed under the MIT License.
 
-* Passwords are hashed with bcrypt
-* Tokens are generated with jsonwebtoken
-* Environment variables are managed with dotenv
-* CORS is enabled for frontend-backend communication
-* Payment processing is simulated as part of the academic scope of the project
-* Email confirmation is simulated as part of the academic scope of the project
-* The old standalone registration flow was removed from the main user journey
+## Author
 
-# Current Status
-
-The backend currently supports:
-
-* working database connection test
-* user login
-* simulated forgot password flow
-* unified subscribe flow
-* simulated checkout persistence
-* JWT protection
-* subscription validation
-* premium content access restriction
-* full admin CRUD for premium content
-
-# Future Improvements
-
-Some tasks are still pending, such as:
-
-* refactoring `app.js` into controllers, routes, and models
-* profile photo update
-* password change feature
-* improved project documentation
-* final presentation materials
-
-# Author
-
-Developed as part of a full-stack web project by Anabel Reyes.
+Anabel Reyes
+GitHub: https://github.com/anabelreyesweb-boop
