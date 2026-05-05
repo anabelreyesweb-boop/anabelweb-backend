@@ -8,9 +8,8 @@ INSERT INTO subscriptions (
     user_id, status, start_date, end_date, auto_renewal, monthly_price, currency, provider_subscription_id
 )
 VALUES
-(2, 'active', '2026-03-01', '2026-04-01', TRUE, 10.00, 'EUR', 'sub_001'),
-(3, 'active', '2026-03-01', '2026-04-01', TRUE, 10.00, 'EUR', 'sub_ana_001');
-
+(2, 'active', '2026-03-01', '2027-04-01', TRUE, 10.00, 'EUR', 'sub_001'),
+(3, 'active', '2026-03-01', '2027-04-01', TRUE, 10.00, 'EUR', 'sub_ana_001');
 INSERT INTO payments (
     user_id, subscription_id, amount, currency, status, provider_payment_id
 )
