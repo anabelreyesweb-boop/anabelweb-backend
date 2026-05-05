@@ -1,8 +1,8 @@
-INSERT INTO users (name, email, password_hash, role)
+INSERT INTO users (name, email, password_hash, role, profile_photo)
 VALUES 
-('Anabel', 'anabel@example.com', 'hashed_admin_password', 'admin'),
-('Laura', 'laura@example.com', 'hashed_user_password', 'subscriber'),
-('Ana', 'ana@example.com', '$2b$10$A25ffn.JiHmuLerRdhiIaOhWn3hony0IE6W8l8isHUMqAQKatrulu', 'subscriber');
+('Anabel', 'anabel@example.com', '$2b$10$Yz1vq9hwOTWXxkjAVn3tJeRqJ77FxKjCfI0wHpZGvV6GjV7oT5c2W', 'admin', NULL),
+('Laura', 'laura@example.com', '$2b$10$Yz1vq9hwOTWXxkjAVn3tJeRqJ77FxKjCfI0wHpZGvV6GjV7oT5c2W', 'subscriber', NULL),
+('Ana', 'ana@example.com', '$2b$10$Yz1vq9hwOTWXxkjAVn3tJeRqJ77FxKjCfI0wHpZGvV6GjV7oT5c2W', 'subscriber', NULL);
 
 INSERT INTO subscriptions (
     user_id, status, start_date, end_date, auto_renewal, monthly_price, currency, provider_subscription_id
@@ -28,8 +28,8 @@ VALUES
     'how-to-structure-a-website',
     'Basic website structure explained.',
     'In this content I explain the main sections of a website and how to organize them.',
-    'https://example.com/video1',
-    'https://example.com/cover1.jpg',
+    'video.mp4',
+    NULL,
     'structure',
     1,
     TRUE
@@ -39,8 +39,8 @@ VALUES
     'css-organization-tips',
     'Tips for keeping CSS clean and scalable.',
     'This content covers naming, file structure and reusable styles.',
-    'https://example.com/video2',
-    'https://example.com/cover2.jpg',
+    'video.mp4',
+    NULL,
     'css',
     2,
     TRUE
@@ -50,8 +50,8 @@ VALUES
     'responsive-design-basics',
     'Introduction to responsive web design.',
     'This content explains breakpoints, flexible layouts and mobile-first design.',
-    'https://example.com/video3',
-    'https://example.com/cover3.jpg',
+    'video.mp4',
+    NULL,
     'responsive',
     3,
     TRUE

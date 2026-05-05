@@ -43,7 +43,7 @@ PORT=3000
 
 ## Environment Variables
 
-Create a `.env` file in the root of the backend project and configure:
+Create a `.env` file in the root of the backend project and configure it with your local database credentials:
 
 PORT=3000
 DB_HOST=127.0.0.1
@@ -64,11 +64,53 @@ cd anabelweb-backend
 
 npm install
 
-### 3. Configure the environment file
+### 3. Create the MySQL database
 
-Create a `.env` file and add your database and JWT configuration.
+Before running the backend, create the MySQL database manually.
 
-### 4. Start the development server
+Example:
+
+CREATE DATABASE aurumpill_db;
+
+You can use any database name you want, but it must match the value used in your `.env` file under `DB_NAME`.
+
+### 4. Create or use a MySQL user
+
+You must also use a MySQL user with permission to access that database.
+
+Example:
+
+CREATE USER 'aurumpill_user'@'localhost' IDENTIFIED BY 'your_password';
+GRANT ALL PRIVILEGES ON aurumpill_db.* TO 'aurumpill_user'@'localhost';
+FLUSH PRIVILEGES;
+
+If you already have a valid MySQL user, you can use that one instead.
+
+### 5. Configure the `.env` file
+
+Example configuration:
+
+PORT=3000
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=aurumpill_user
+DB_PASSWORD=your_password
+DB_NAME=aurumpill_db
+JWT_SECRET=your_jwt_secret
+
+### 6. Import the SQL files
+
+Once the database has been created, import the SQL files in this order:
+
+1. `schema.sql`
+2. `seed.sql`
+
+Example:
+
+mysql -u aurumpill_user -p aurumpill_db < database/schema.sql
+mysql -u aurumpill_user -p aurumpill_db < database/seed.sql
+
+### 7. Start the development server
 
 npm start
 
@@ -92,6 +134,25 @@ The `users` table also stores:
 * password hash
 * profile photo
 * role
+
+## Seed Access Data
+
+The seed file includes example users for testing.
+
+### Admin user
+
+* Email: [anabel@example.com](mailto:anabel@example.com)
+* Password: 123456
+
+### Subscriber users
+
+* Email: [laura@example.com](mailto:laura@example.com)
+
+* Password: 123456
+
+* Email: [ana@example.com](mailto:ana@example.com)
+
+* Password: 123456
 
 ## Authentication and Security
 
@@ -177,14 +238,14 @@ When a user subscribes:
 ## Project Structure
 
 src/
-config/
-db.js
-middleware/
-authMiddleware.js
-app.js
+  config/
+    db.js
+  middleware/
+    authMiddleware.js
+  app.js
 database/
-schema.sql
-seed.sql
+  schema.sql
+  seed.sql
 
 ## Available Scripts
 

@@ -4,6 +4,7 @@ CREATE TABLE users (
     email VARCHAR(150) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'subscriber',
+    profile_photo LONGTEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
